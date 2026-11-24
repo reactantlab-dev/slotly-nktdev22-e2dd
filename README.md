@@ -1,6 +1,6 @@
 # Slotly
 
-Online booking for small salons and studios: clients pick a service, a specialist and a free time, then manage their bookings.
+Onlinee booking for small salons and studios: clients pick a service, a specialist and a free time, then manage their bookings.
 
 ## Quick start
 
