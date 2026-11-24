@@ -1,4 +1,4 @@
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { services } from "@/lib/db/schema";
 
@@ -21,6 +21,7 @@ export function listServices(): ServiceDto[] {
       priceCents: services.priceCents,
     })
     .from(services)
+    .where(eq(services.isActive, true))
     .orderBy(asc(services.name))
     .all();
 }
