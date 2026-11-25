@@ -17,3 +17,20 @@ export function formatDuration(minutes: number): string {
   if (hours === 0) return `${rest} min`;
   return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
+
+const dayFormatter = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+/** "2027-03-02T10:00:00.000Z" → "10:00" (UTC, 24-hour) */
+export function formatTime(value: Date | string): string {
+  return new Date(value).toISOString().slice(11, 16);
+}
+
+/** "2027-03-02T10:00:00.000Z" → "Tue, Mar 2 · 10:00" (UTC) */
+export function formatDateTime(value: Date | string): string {
+  return `${dayFormatter.format(new Date(value))} · ${formatTime(value)}`;
+}
