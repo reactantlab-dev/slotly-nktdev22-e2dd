@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `bookings_active_slot_uq` ON `bookings` (`specialist_id`,`starts_at`) WHERE "bookings"."status" = 'active';
