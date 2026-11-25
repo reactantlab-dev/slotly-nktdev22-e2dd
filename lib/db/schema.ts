@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /**
  * Slotly domain tables. See docs/data-model.md for the full product model:
@@ -77,7 +77,14 @@ export const bookings = sqliteTable(
     cancelledAt: integer("cancelled_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
   },
-  (table) => [index("bookings_specialist_starts_idx").on(table.specialistId, table.startsAt)],
+  (table) => [
+    index("bookings_specialist_starts_idx").on(table.specialistId, table.startsAt),
+    // The database itself refuses a second active booking for the same specialist and start (SLOT-103).
+    // Partial, so a cancelled booking does not block its time.
+    uniqueIndex("bookings_active_slot_uq")
+      .on(table.specialistId, table.startsAt)
+      .where(sql`${table.status} = 'active'`),
+  ],
 );
 
 export type Service = typeof services.$inferSelect;
