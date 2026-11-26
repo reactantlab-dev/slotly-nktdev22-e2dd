@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { user } from "./auth-schema";
 
 /**
  * Slotly domain tables. See docs/data-model.md for the full product model:
@@ -76,6 +77,8 @@ export const bookings = sqliteTable(
     status: text("status", { enum: BOOKING_STATUSES }).notNull().default("active"),
     cancelledAt: integer("cancelled_at", { mode: "timestamp_ms" }),
     createdAt: createdAt(),
+    // Set when the client was signed in (SLOT-201).
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   },
   (table) => [
     index("bookings_specialist_starts_idx").on(table.specialistId, table.startsAt),
@@ -84,6 +87,7 @@ export const bookings = sqliteTable(
     uniqueIndex("bookings_active_slot_uq")
       .on(table.specialistId, table.startsAt)
       .where(sql`${table.status} = 'active'`),
+    index("bookings_user_idx").on(table.userId),
   ],
 );
 

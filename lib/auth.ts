@@ -10,14 +10,12 @@ import * as authSchema from "@/lib/db/auth-schema";
  */
 const LOCAL_ONLY_SECRET = "slotly-local-only-placeholder-not-a-secret-0000";
 
-/**
- * Better Auth is installed and wired to the database, but no sign-in method is enabled yet.
- * Enabling email + password sign-in is ticket SLOT-201 (see docs/api.md → Auth).
- */
+/** Email + password accounts (SLOT-201). Passwords: 8–128 characters (Better Auth defaults). */
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || LOCAL_ONLY_SECRET,
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
   database: drizzleAdapter(db, { provider: "sqlite", schema: authSchema }),
+  emailAndPassword: { enabled: true },
   // On by default in production builds. The test runner turns it off (SLOTLY_AUTH_RATE_LIMIT=off)
   // because the suites create many accounts from one IP. Keep this line.
   rateLimit: { enabled: process.env.SLOTLY_AUTH_RATE_LIMIT !== "off" },
