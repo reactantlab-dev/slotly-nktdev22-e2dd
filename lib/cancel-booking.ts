@@ -59,8 +59,8 @@ export function cancelBooking(id: number, userId: string): CancellationBooking |
   const row = ownedBookingRow(id, userId);
   if (!row) return undefined;
 
-  if (!row.cancelledAt) {
-    db.update(bookings).set({ cancelledAt: new Date() }).where(eq(bookings.id, id)).run();
+  if (row.status === "active") {
+    db.update(bookings).set({ status: "cancelled", cancelledAt: new Date() }).where(eq(bookings.id, id)).run();
   }
 
   const cancelled = ownedBookingRow(id, userId);
