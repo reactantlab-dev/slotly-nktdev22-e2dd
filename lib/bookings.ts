@@ -1,6 +1,7 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { activeBookingsBetween, candidateSlots } from "@/lib/availability";
 import { findActiveService, findSpecialist, offersService } from "@/lib/catalog";
+import { now } from "@/lib/clock";
 import { db } from "@/lib/db";
 import { bookings, services, specialists, type Service } from "@/lib/db/schema";
 import { AppError, isUniqueViolation } from "@/lib/errors";
@@ -117,4 +118,48 @@ export function createBooking(input: CreateBookingInput): BookingDto {
 /** The client's bookings (active and cancelled), earliest first. */
 export function listUserBookings(userId: string): BookingDto[] {
   return bookingQuery().where(eq(bookings.userId, userId)).orderBy(asc(bookings.startsAt), asc(bookings.id)).all().map(toDto);
+}
+
+export const RESCHEDULE_CUTOFF_MIN = 120;
+
+/** The client's own booking, or undefined (also for someone else's). */
+export function findOwnedBooking(id: number, userId: string): BookingDto | undefined {
+  const row = bookingQuery().where(and(eq(bookings.id, id), eq(bookings.userId, userId))).get();
+  return row ? toDto(row) : undefined;
+}
+
+/** True while the visit starts at least 2 hours from now. */
+export function canReschedule(booking: Pick<BookingDto, "startsAt" | "status">): boolean {
+  return booking.status === "active" && new Date(booking.startsAt).getTime() - now().getTime() >= RESCHEDULE_CUTOFF_MIN * 60_000;
+}
+
+/**
+ * Moves the client's booking to `newStartsAt` (same service and specialist); null = malformed input.
+ * Check order follows docs/api.md: owned → cancelled → too late → valid slot → free.
+ */
+export function rescheduleBooking(id: number, userId: string, newStartsAt: Date | null): BookingDto {
+  const booking = findOwnedBooking(id, userId);
+  if (!booking) throw new AppError(404, "not_found", "Booking not found");
+  if (booking.status !== "active") throw new AppError(400, "validation_error", "Cancelled bookings can't be rescheduled");
+  if (!canReschedule(booking)) {
+    throw new AppError(422, "too_late", "Bookings can't be changed less than 2 hours before the visit");
+  }
+  const service = db.select().from(services).where(eq(services.id, booking.serviceId)).get();
+  if (!service) throw new Error(`Service ${booking.serviceId} missing for booking ${id}`);
+  if (!newStartsAt) throw new AppError(400, "validation_error", "startsAt must be an ISO 8601 date-time");
+  assertOfferedSlot(booking.specialistId, service, newStartsAt);
+  const newEndsAt = addMinutes(newStartsAt, service.durationMin);
+
+  try {
+    db.transaction((tx) => {
+      assertFree(booking.specialistId, newStartsAt, newEndsAt, id); // its own current time does not block
+      tx.update(bookings).set({ startsAt: newStartsAt, endsAt: newEndsAt }).where(eq(bookings.id, id)).run();
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new AppError(409, "slot_taken", "This time is no longer available");
+    throw error;
+  }
+  const updated = findBooking(id);
+  if (!updated) throw new Error(`Booking ${id} vanished after update`);
+  return updated;
 }

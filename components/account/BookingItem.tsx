@@ -1,6 +1,6 @@
-import { Badge, Surface } from "@/components/ui";
-import Link from "next/link";
-import type { BookingDto } from "@/lib/bookings";
+import { Badge, ButtonLink, Surface } from "@/components/ui";
+import { canReschedule, type BookingDto } from "@/lib/bookings";
+
 import { formatDateTime } from "@/lib/format";
 
 export function BookingItem({ booking }: { booking: BookingDto }) {
@@ -13,15 +13,19 @@ export function BookingItem({ booking }: { booking: BookingDto }) {
           <p className="font-display text-xl font-semibold tracking-tight">{title}</p>
           <p className="mt-1 text-ink-muted tabular-nums">{formatDateTime(booking.startsAt)}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge tone={isActive ? "success" : "neutral"}>{isActive ? "Active" : "Cancelled"}</Badge>
-          {isActive && (
-            <Link href={`/my-bookings/${booking.id}`} className="text-sm underline">
-              Cancel booking
-            </Link>
-          )}
-        </div>
+        <Badge tone={isActive ? "success" : "neutral"}>{isActive ? "Active" : "Cancelled"}</Badge>
       </div>
+      {isActive && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+          {canReschedule(booking) && (
+            <ButtonLink href={`/my-bookings/${booking.id}/reschedule`} variant="secondary" size="sm">
+              Reschedule
+            </ButtonLink>
+          )}
+          <ButtonLink href={`/my-bookings/${booking.id}`} variant="secondary" size="sm">Cancel booking</ButtonLink>
+        </div>
+
+      )}
     </Surface>
   );
 }
