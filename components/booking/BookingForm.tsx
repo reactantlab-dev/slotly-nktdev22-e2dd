@@ -7,7 +7,14 @@ import type { SpecialistDto } from "@/lib/catalog";
 import { SlotList } from "./SlotList";
 import { useSlots } from "./useSlots";
 
-type Props = { serviceId: number; specialists: SpecialistDto[]; today: string };
+type Props = {
+  serviceId: number;
+  specialists: SpecialistDto[];
+  today: string;
+  /** Prefill for a signed-in client (SLOT-201). */
+  defaultName?: string;
+  defaultEmail?: string;
+};
 type FieldErrors = { clientName?: string; clientEmail?: string };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,14 +28,14 @@ function validate(clientName: string, clientEmail: string): FieldErrors {
   return errors;
 }
 
-export function BookingForm({ serviceId, specialists, today }: Props) {
+export function BookingForm({ serviceId, specialists, today, defaultName = "", defaultEmail = "" }: Props) {
   const router = useRouter();
   const [specialistId, setSpecialistId] = useState<number | null>(specialists.length === 1 ? (specialists[0]?.id ?? null) : null);
   const [date, setDate] = useState(today);
   const [selected, setSelected] = useState<string | null>(null);
   const slots = useSlots(serviceId, specialistId, date);
-  const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+  const [clientName, setClientName] = useState(defaultName);
+  const [clientEmail, setClientEmail] = useState(defaultEmail);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

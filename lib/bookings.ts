@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { activeBookingsBetween, candidateSlots } from "@/lib/availability";
 import { findActiveService, findSpecialist, offersService } from "@/lib/catalog";
 import { db } from "@/lib/db";
@@ -99,6 +99,7 @@ export function createBooking(input: CreateBookingInput): BookingDto {
           clientEmail: input.clientEmail,
           startsAt: input.startsAt,
           endsAt,
+          userId: input.userId ?? null,
         })
         .returning({ id: bookings.id })
         .get();
@@ -111,4 +112,9 @@ export function createBooking(input: CreateBookingInput): BookingDto {
     if (isUniqueViolation(error)) throw new AppError(409, "slot_taken", "This time is no longer available");
     throw error;
   }
+}
+
+/** The client's bookings (active and cancelled), earliest first. */
+export function listUserBookings(userId: string): BookingDto[] {
+  return bookingQuery().where(eq(bookings.userId, userId)).orderBy(asc(bookings.startsAt), asc(bookings.id)).all().map(toDto);
 }

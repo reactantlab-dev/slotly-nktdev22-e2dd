@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui";
 import { findActiveService, listSpecialistsForService } from "@/lib/catalog";
 import { now } from "@/lib/clock";
 import { formatDuration, formatPrice } from "@/lib/format";
+import { getSessionUser } from "@/lib/session";
 import { toDateString } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Book" };
@@ -17,6 +18,7 @@ export default async function BookPage({ params }: Props) {
   const serviceId = Number((await params).serviceId);
   const service = Number.isInteger(serviceId) && serviceId > 0 ? findActiveService(serviceId) : undefined;
   if (!service) notFound();
+  const user = await getSessionUser();
 
   return (
     <>
@@ -25,7 +27,10 @@ export default async function BookPage({ params }: Props) {
         title={service.name}
         description={`${formatDuration(service.durationMin)} · ${formatPrice(service.priceCents)}`}
       />
-      <BookingForm serviceId={service.id} specialists={listSpecialistsForService(service.id)} today={toDateString(now())} />
+      <BookingForm serviceId={service.id} specialists={listSpecialistsForService(service.id)} today={toDateString(now())}
+        defaultName={user?.name}
+        defaultEmail={user?.email}
+      />
     </>
   );
 }
